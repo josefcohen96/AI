@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Nutrition AI Demo</title>
+<body>
+  <h1>Upload Meal</h1>
+  <input type="file" id="file" accept="image/*"/>
+  <button id="go">Upload & Analyze</button>
+  <pre id="out"></pre>
+  <script>
+    const API_BASE = "<<< הדבק כאן את ה-HTTP API base של serverless deploy >>>";
+    const out = document.getElementById('out');
+
+    async function getUploadUrl() {
+      const r = await fetch(`${API_BASE}/upload-url`, {method:'POST'});
+      return r.json();
+    }
+    async function putImage(url, file) {
+      await fetch(url, { method:'PUT', headers:{'Content-Type': file.type}, body:file });
+    }
+    async function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+    document.getElementById('go').onclick = async () => {
+      const f = document.getElementById('file').files[0];
+      if(!f){ out.textContent="בחר תמונה"; return; }
+      out.textContent="מבקש URL חתום...";
+      const {uploadUrl, imageId} = await getUploadUrl();
+      out.textContent += `\nמעלה ל-S3...`;
+      await putImage(uploadUrl, f);
+
+      out.textContent += `\nמנתח (Lambda via S3 trigger)...`;
+      await wait(3000); // המתנה קצרה לעיבוד
+
+      out.textContent += `\nמביא תוצאה...`;
+      const res = await fetch(`${API_BASE}/result/${imageId}`);
+      const json = await res.json();
+      out.textContent = JSON.stringify(json, null, 2);
+    };
+  </script>
+</body>

@@ -1,0 +1,230 @@
+{
+  "C:\\Users\\cohen\\Desktop\\Projects\\AI\\nutrition-ai\\serverless.yml": {
+    "versionFramework": "4.23.0",
+    "servicePath": "C:\\Users\\cohen\\Desktop\\Projects\\AI\\nutrition-ai\\serverless.yml",
+    "serviceConfigFileName": "serverless.yml",
+    "service": {
+      "service": "nutrition-ai-api",
+      "frameworkVersion": "4",
+      "provider": {
+        "name": "aws",
+        "runtime": "python3.11",
+        "region": "eu-central-1",
+        "environment": {
+          "BUCKET_NAME": "nutrition-ai-images-yc-001",
+          "TABLE_NAME": "nutrition-meals"
+        },
+        "iamRoleStatements": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "s3:PutObject",
+              "s3:GetObject",
+              "s3:ListBucket"
+            ],
+            "Resource": [
+              "arn:aws:s3:::nutrition-ai-images-yc-001",
+              "arn:aws:s3:::nutrition-ai-images-yc-001/*"
+            ]
+          },
+          {
+            "Effect": "Allow",
+            "Action": [
+              "dynamodb:PutItem",
+              "dynamodb:GetItem"
+            ],
+            "Resource": "arn:aws:dynamodb:eu-central-1:*:table/nutrition-meals"
+          }
+        ],
+        "stage": "dev",
+        "versionFunctions": true
+      },
+      "functions": {
+        "getUploadUrl": {
+          "handler": "lambdas/getUploadUrl/handler.lambda_handler",
+          "events": [
+            {
+              "httpApi": {
+                "path": "/upload-url",
+                "method": "post"
+              },
+              "resolvedMethod": "POST",
+              "resolvedPath": "/upload-url"
+            }
+          ],
+          "name": "nutrition-ai-api-dev-getUploadUrl"
+        },
+        "onImageUploaded": {
+          "handler": "lambdas/onImageUploaded/handler.lambda_handler",
+          "events": [
+            {
+              "s3": {
+                "bucket": "nutrition-ai-images-yc-001",
+                "event": "s3:ObjectCreated:Put",
+                "existing": true
+              }
+            }
+          ],
+          "name": "nutrition-ai-api-dev-onImageUploaded"
+        },
+        "getMealResult": {
+          "handler": "lambdas/getMealResult/handler.lambda_handler",
+          "events": [
+            {
+              "httpApi": {
+                "path": "/result/{imageId}",
+                "method": "get"
+              },
+              "resolvedMethod": "GET",
+              "resolvedPath": "/result/{imageId}"
+            }
+          ],
+          "name": "nutrition-ai-api-dev-getMealResult"
+        }
+      },
+      "resources": {
+        "Resources": {
+          "MealsTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "nutrition-meals",
+              "BillingMode": "PAY_PER_REQUEST",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "imageId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "imageId",
+                  "KeyType": "HASH"
+                }
+              ]
+            }
+          },
+          "ImagesBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketName": "nutrition-ai-images-yc-001",
+              "CorsConfiguration": {
+                "CorsRules": [
+                  {
+                    "AllowedHeaders": [
+                      "*"
+                    ],
+                    "AllowedMethods": [
+                      "PUT",
+                      "GET",
+                      "HEAD"
+                    ],
+                    "AllowedOrigins": [
+                      "*"
+                    ],
+                    "MaxAge": 3000
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "python3.11",
+      "region": "eu-central-1",
+      "environment": {
+        "BUCKET_NAME": "nutrition-ai-images-yc-001",
+        "TABLE_NAME": "nutrition-meals"
+      },
+      "iamRoleStatements": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:PutObject",
+            "s3:GetObject",
+            "s3:ListBucket"
+          ],
+          "Resource": [
+            "arn:aws:s3:::nutrition-ai-images-yc-001",
+            "arn:aws:s3:::nutrition-ai-images-yc-001/*"
+          ]
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:PutItem",
+            "dynamodb:GetItem"
+          ],
+          "Resource": "arn:aws:dynamodb:eu-central-1:*:table/nutrition-meals"
+        }
+      ],
+      "stage": "dev",
+      "versionFunctions": true
+    },
+    "dashboard": {
+      "isEnabledForService": false,
+      "requiredAuthentication": false,
+      "orgFeaturesInUse": null,
+      "orgObservabilityIntegrations": null,
+      "serviceAppId": null,
+      "serviceProvider": null,
+      "instanceParameters": null
+    },
+    "serviceRawFile": "service: nutrition-ai-api\r\nframeworkVersion: \"4\"\r\n\r\nprovider:\r\n  name: aws\r\n  runtime: python3.11\r\n  region: eu-central-1\r\n  environment:\r\n    BUCKET_NAME: nutrition-ai-images-yc-001\r\n    TABLE_NAME: nutrition-meals        # ← מאוחד\r\n  iamRoleStatements:\r\n    - Effect: Allow\r\n      Action:\r\n        - s3:PutObject\r\n        - s3:GetObject\r\n        - s3:ListBucket\r\n      Resource:\r\n        - arn:aws:s3:::nutrition-ai-images-yc-001\r\n        - arn:aws:s3:::nutrition-ai-images-yc-001/*\r\n    - Effect: Allow\r\n      Action:\r\n        - dynamodb:PutItem\r\n        - dynamodb:GetItem\r\n      Resource:\r\n        - arn:aws:dynamodb:eu-central-1:*:table/nutrition-meals   # ← תואם\r\n\r\nfunctions:\r\n  getUploadUrl:\r\n    handler: lambdas/getUploadUrl/handler.lambda_handler\r\n    events:\r\n      - httpApi:\r\n          path: /upload-url\r\n          method: post\r\n\r\n  onImageUploaded:\r\n    handler: lambdas/onImageUploaded/handler.lambda_handler\r\n    events:\r\n      - s3:\r\n          bucket: ${env:BUCKET_NAME}\r\n          event: s3:ObjectCreated:Put\r\n          existing: true                 # ← חשוב! שלא ייצור באקט נוסף\r\n\r\n  getMealResult:\r\n    handler: lambdas/getMealResult/handler.lambda_handler\r\n    events:\r\n      - httpApi:\r\n          path: /result/{imageId}\r\n          method: get\r\n\r\nresources:\r\n  Resources:\r\n    MealsTable:\r\n      Type: AWS::DynamoDB::Table\r\n      Properties:\r\n        TableName: ${env:TABLE_NAME}     # ← תואם: nutrition-meals\r\n        BillingMode: PAY_PER_REQUEST\r\n        AttributeDefinitions:\r\n          - AttributeName: imageId\r\n            AttributeType: S\r\n        KeySchema:\r\n          - AttributeName: imageId\r\n            KeyType: HASH\r\n\r\n    ImagesBucket:\r\n      Type: AWS::S3::Bucket\r\n      Properties:\r\n        BucketName: ${env:BUCKET_NAME}\r\n        CorsConfiguration:\r\n          CorsRules:\r\n            - AllowedHeaders: [\"*\"]\r\n              AllowedMethods: [\"PUT\",\"GET\",\"HEAD\"]\r\n              AllowedOrigins: [\"*\"]\r\n              MaxAge: 3000\r\n",
+    "command": [
+      "info"
+    ],
+    "options": {
+      "verbose": true
+    },
+    "orgId": "eb6ea875-37e5-4575-9029-df8fa0c28b7a",
+    "orgName": "josef1996",
+    "userId": "rdzmCWcsN5VvhsJQs7",
+    "userName": "josef1996",
+    "serviceProviderAwsAccountId": "150540468668",
+    "serviceProviderAwsCfStackName": "nutrition-ai-api-dev",
+    "serviceProviderAwsCfStackId": "arn:aws:cloudformation:eu-central-1:150540468668:stack/nutrition-ai-api-dev/7e075aa0-bb59-11f0-b1b1-0246319042f5",
+    "serviceProviderAwsCfStackCreated": "2025-11-06T21:42:29.056Z",
+    "serviceProviderAwsCfStackUpdated": null,
+    "serviceProviderAwsCfStackStatus": "CREATE_COMPLETE",
+    "serviceProviderAwsCfStackOutputs": [
+      {
+        "OutputKey": "OnImageUploadedLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:eu-central-1:150540468668:function:nutrition-ai-api-dev-onImageUploaded:6",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-nutrition-ai-api-dev-OnImageUploadedLambdaFunctionQualifiedArn"
+      },
+      {
+        "OutputKey": "GetUploadUrlLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:eu-central-1:150540468668:function:nutrition-ai-api-dev-getUploadUrl:6",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-nutrition-ai-api-dev-GetUploadUrlLambdaFunctionQualifiedArn"
+      },
+      {
+        "OutputKey": "GetMealResultLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:eu-central-1:150540468668:function:nutrition-ai-api-dev-getMealResult:6",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-nutrition-ai-api-dev-GetMealResultLambdaFunctionQualifiedArn"
+      },
+      {
+        "OutputKey": "HttpApiId",
+        "OutputValue": "m8cl5wrwz5",
+        "Description": "Id of the HTTP API",
+        "ExportName": "sls-nutrition-ai-api-dev-HttpApiId"
+      },
+      {
+        "OutputKey": "ServerlessDeploymentBucketName",
+        "OutputValue": "serverless-framework-deployments-eu-central-1-1f09bb78-8a8e",
+        "ExportName": "sls-nutrition-ai-api-dev-ServerlessDeploymentBucketName"
+      },
+      {
+        "OutputKey": "HttpApiUrl",
+        "OutputValue": "https://m8cl5wrwz5.execute-api.eu-central-1.amazonaws.com",
+        "Description": "URL of the HTTP API",
+        "ExportName": "sls-nutrition-ai-api-dev-HttpApiUrl"
+      }
+    ]
+  }
+}

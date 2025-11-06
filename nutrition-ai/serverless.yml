@@ -1,0 +1,73 @@
+service: nutrition-ai-api
+frameworkVersion: "4"
+
+provider:
+  name: aws
+  runtime: python3.11
+  region: eu-central-1
+  environment:
+    BUCKET_NAME: nutrition-ai-images-yc-001
+    TABLE_NAME: nutrition-meals        # ← מאוחד
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+        - s3:ListBucket
+      Resource:
+        - arn:aws:s3:::nutrition-ai-images-yc-001
+        - arn:aws:s3:::nutrition-ai-images-yc-001/*
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+      Resource:
+        - arn:aws:dynamodb:eu-central-1:*:table/nutrition-meals   # ← תואם
+
+functions:
+  getUploadUrl:
+    handler: lambdas/getUploadUrl/handler.lambda_handler
+    events:
+      - httpApi:
+          path: /upload-url
+          method: post
+
+  onImageUploaded:
+    handler: lambdas/onImageUploaded/handler.lambda_handler
+    events:
+      - s3:
+          bucket: ${env:BUCKET_NAME}
+          event: s3:ObjectCreated:Put
+          existing: true                 # ← חשוב! שלא ייצור באקט נוסף
+
+  getMealResult:
+    handler: lambdas/getMealResult/handler.lambda_handler
+    events:
+      - httpApi:
+          path: /result/{imageId}
+          method: get
+
+resources:
+  Resources:
+    MealsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${env:TABLE_NAME}     # ← תואם: nutrition-meals
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: imageId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: imageId
+            KeyType: HASH
+
+    ImagesBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${env:BUCKET_NAME}
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders: ["*"]
+              AllowedMethods: ["PUT","GET","HEAD"]
+              AllowedOrigins: ["*"]
+              MaxAge: 3000
